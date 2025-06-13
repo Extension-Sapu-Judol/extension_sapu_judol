@@ -1,3 +1,6 @@
 import axios from "axios";
 
-export const axiosInstance = axios.create({ baseURL: "" });
+console.log(`URL: ${process.env.PLASMO_PUBLIC_BACKEND_URL}`);
+export const axiosInstance = axios.create({
+  baseURL: process.env.PLASMO_PUBLIC_BACKEND_URL || "http://localhost:8000/"
+});

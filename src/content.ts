@@ -1,5 +1,8 @@
+import { Axios, AxiosError } from "axios";
 import type { PlasmoCSConfig } from "plasmo";
 import browser from "webextension-polyfill";
+
+import { axiosInstance } from "./services/api";
 
 export const config: PlasmoCSConfig = {
   matches: ["*://www.youtube.com/*"]
@@ -8,6 +11,7 @@ export const config: PlasmoCSConfig = {
 type CommentData = {
   id: string;
   text: string;
+  is_judol?: boolean;
 };
 
 let sentCommentIds = new Set<string>();
@@ -56,8 +60,8 @@ async function setYoutubeComment(comment: CommentData) {
       `#content-text[data-comment-id="${comment.id}"]`
     );
 
-    if (el) {
-      el.textContent = "Censored by Sapu Judol";
+    if (el && comment.is_judol) {
+      el.textContent = "Komentar disensor oleh Sapu Judol.";
     }
   } catch (err) {
     console.warn(`[Sapu Judol] Gagal memproses komentar ${comment.id}`, err);
@@ -74,15 +78,22 @@ async function observeComments() {
     return;
   }
 
-  intervalId = setInterval(() => {
+  intervalId = setInterval(async () => {
     const comments = getYouTubeComments();
 
-    comments.forEach((comment) => {
-      if (!sentCommentIds.has(comment.id)) {
-        setYoutubeComment(comment);
-        sentCommentIds.add(comment.id);
-      }
-    });
+    const filteredComments = await axiosInstance.post(
+      "/filter_comments",
+      comments
+    );
+
+    console.log(filteredComments.data);
+    if (!(filteredComments instanceof AxiosError))
+      filteredComments.data.comments.forEach((comment) => {
+        if (!sentCommentIds.has(comment.id)) {
+          setYoutubeComment(comment);
+          sentCommentIds.add(comment.id);
+        }
+      });
   }, 2000);
 }
 
